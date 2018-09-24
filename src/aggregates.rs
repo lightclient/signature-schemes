@@ -50,6 +50,10 @@ impl AggregatePublicKey {
     /// Add a PublicKey to the AggregatePublicKey.
     pub fn add(&mut self, public_key: &PublicKey) {
         self.point.add(&public_key.point);
+    }
+
+    /// Execute the affine function on the underlying point.
+    pub fn affine(&mut self) {
         self.point.affine();
     }
 
@@ -101,22 +105,26 @@ impl AggregateSignature {
     /// Add a Signature to the AggregateSignature.
     pub fn add(&mut self, signature: &Signature) {
         self.point.add(&signature.point);
-        self.point.affine();
     }
 
     /// Verify this AggregateSignature against an AggregatePublicKey.
     ///
     /// All PublicKeys which signed across this AggregateSignature must be included in the
     /// AggregatePublicKey, otherwise verification will fail.
-    pub fn verify(&self, msg: &[u8], avk: &AggregatePublicKey)
+    pub fn verify(&mut self, msg: &[u8],
+                  aggregate_pub: &mut AggregatePublicKey)
         -> bool
     {
         if self.point.is_infinity() {
             return false;
         }
+        self.point.affine();
+        aggregate_pub.affine();
         let msg_hash_point = hash_on_g1(msg);
-        let mut lhs = ate_pairing(&GeneratorG2, self.point.as_raw());
-        let mut rhs = ate_pairing(&avk.point.as_raw(), &msg_hash_point);
+        let mut lhs = ate_pairing(&GeneratorG2,
+                                  self.point.as_raw());
+        let mut rhs = ate_pairing(&aggregate_pub.point.as_raw(),
+                                  &msg_hash_point);
         lhs.equals(&mut rhs)
     }
 
@@ -185,13 +193,13 @@ mod tests {
         let agg_sig_bytes = agg_sig.as_bytes();
         let agg_pub_bytes = agg_pub_key.as_bytes();
 
-        let agg_sig = AggregateSignature::
+        let mut agg_sig = AggregateSignature::
             from_bytes(&agg_sig_bytes).unwrap();
-        let agg_pub_key = AggregatePublicKey::
+        let mut agg_pub_key = AggregatePublicKey::
             from_bytes(&agg_pub_bytes).unwrap();
 
 
-        assert!(agg_sig.verify(&message, &agg_pub_key));
+        assert!(agg_sig.verify(&message, &mut agg_pub_key));
     }
 
     fn map_secret_bytes_to_keypairs(secret_key_bytes: Vec<Vec<u8>>)
@@ -239,7 +247,7 @@ mod tests {
             /*
              * The full set of signed keys should pass verification.
              */
-            assert!(agg_signature.verify(&message, &signing_agg_pub));
+            assert!(agg_signature.verify(&message, &mut signing_agg_pub));
 
             /*
              * The signature should fail if an extra key has signed the
@@ -250,20 +258,20 @@ mod tests {
                 &message,
                 &non_signing_kps[0].sk);
             super_set_agg_sig.add(&extra_sig);
-            assert!(!super_set_agg_sig.verify(&message, &signing_agg_pub));
+            assert!(!super_set_agg_sig.verify(&message, &mut signing_agg_pub));
 
             /*
              * A subset of signed keys should fail verification.
              */
             let mut subset_pub_keys = signing_kps_subset.iter().map(|kp| kp.pk.clone()).collect();
-            let subset_agg_key = AggregatePublicKey::
+            let mut subset_agg_key = AggregatePublicKey::
                 from_public_keys(&subset_pub_keys);
-            assert!(!agg_signature.verify(&message, &subset_agg_key));
+            assert!(!agg_signature.verify(&message, &mut subset_agg_key));
             // Sanity check the subset test by completing the set and verifying it.
             subset_pub_keys.push(signing_kps[signing_kps.len() - 1].pk.clone());
-            let subset_agg_key = AggregatePublicKey::
+            let mut subset_agg_key = AggregatePublicKey::
                 from_public_keys(&subset_pub_keys);
-            assert!(agg_signature.verify(&message, &subset_agg_key));
+            assert!(agg_signature.verify(&message, &mut subset_agg_key));
 
             // TODO: test superset of pub keys.
 
@@ -272,9 +280,9 @@ mod tests {
              */
             let mut non_signing_pub_keys = non_signing_kps.iter()
                 .map(|kp| kp.pk.clone()).collect();
-            let non_signing_agg_key = AggregatePublicKey::
+            let mut non_signing_agg_key = AggregatePublicKey::
                 from_public_keys(&non_signing_pub_keys);
-            assert!(!agg_signature.verify(&message, &non_signing_agg_key));
+            assert!(!agg_signature.verify(&message, &mut non_signing_agg_key));
         }
     }
 
