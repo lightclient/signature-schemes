@@ -260,6 +260,68 @@ fn key_generation(c: &mut Criterion) {
     );
 }
 
+fn clone(c: &mut Criterion) {
+    let keypair_a = Keypair::random();
+    c.bench(
+        "clone",
+        Benchmark::new("public_key", move |b| {
+            b.iter(|| {
+                black_box(keypair_a.pk.clone());
+            })
+        })
+        .sample_size(10),
+    );
+}
+
+fn bytes(c: &mut Criterion) {
+    let keypair_a = Keypair::random();
+    c.bench(
+        "as_uncompressed_bytes",
+        Benchmark::new("public_key", move |b| {
+            b.iter_with_setup(
+                || keypair_a.pk.clone(),
+                |mut pk| {
+                    black_box(pk.as_uncompressed_bytes());
+                },
+            )
+        })
+        .sample_size(10),
+    );
+
+    let bytes = Keypair::random().pk.as_uncompressed_bytes();
+    c.bench(
+        "from_uncompressed_bytes",
+        Benchmark::new("public_key", move |b| {
+            b.iter(|| {
+                black_box(PublicKey::from_uncompressed_bytes(&bytes).unwrap());
+            })
+        })
+        .sample_size(10),
+    );
+
+    let bytes = Keypair::random().pk.as_bytes();
+    c.bench(
+        "from_compressed_bytes",
+        Benchmark::new("public_key", move |b| {
+            b.iter(|| {
+                black_box(PublicKey::from_bytes(&bytes).unwrap());
+            })
+        })
+        .sample_size(10),
+    );
+
+    let keypair_a = Keypair::random();
+    c.bench(
+        "as_compressed_bytes",
+        Benchmark::new("public_key", move |b| {
+            b.iter(|| {
+                black_box(keypair_a.pk.as_bytes());
+            })
+        })
+        .sample_size(10),
+    );
+}
+
 criterion_group!(
     benches,
     compression_signature,
@@ -269,6 +331,8 @@ criterion_group!(
     aggregation,
     aggregate_verfication,
     aggregate_verfication_multiple_messages,
-    key_generation
+    key_generation,
+    clone,
+    bytes,
 );
 criterion_main!(benches);
