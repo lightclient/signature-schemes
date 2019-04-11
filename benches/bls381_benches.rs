@@ -118,6 +118,39 @@ fn signing(c: &mut Criterion) {
     );
 }
 
+fn aggregate_many_pubkeys(c: &mut Criterion) {
+    let keycount = 64;
+
+    let mut agg_pub = AggregatePublicKey::new();
+    let keypairs: Vec<Keypair> = (0..keycount).map(|_| Keypair::random()).collect();
+    c.bench(
+        "aggregate_many",
+        Benchmark::new("Aggregate many PublicKey using multiple adds", move |b| {
+            b.iter(|| {
+                let pubkeys: Vec<&PublicKey> = keypairs.iter().map(|k| &k.pk).collect();
+
+                for pubkey in pubkeys {
+                    agg_pub.add(&pubkey);
+                }
+            })
+        })
+        .sample_size(100),
+    );
+
+    let mut agg_pub = AggregatePublicKey::new();
+    let keypairs: Vec<Keypair> = (0..64).map(|_| Keypair::random()).collect();
+    c.bench(
+        "aggregate_many",
+        Benchmark::new("Aggregate many PublicKey using add_many", move |b| {
+            b.iter(|| {
+                let pubkeys: Vec<&PublicKey> = keypairs.iter().map(|k| &k.pk).collect();
+                agg_pub.add_many(&pubkeys);
+            })
+        })
+        .sample_size(100),
+    );
+}
+
 fn aggregation(c: &mut Criterion) {
     let keypair = Keypair::random();
     let sk = keypair.sk;
@@ -267,6 +300,7 @@ criterion_group!(
     compression_public_key_bigs,
     signing,
     aggregation,
+    aggregate_many_pubkeys,
     aggregate_verfication,
     aggregate_verfication_multiple_messages,
     key_generation

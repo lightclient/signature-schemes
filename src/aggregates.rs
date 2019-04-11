@@ -43,6 +43,14 @@ impl AggregatePublicKey {
         self.point.affine();
     }
 
+    /// Add many PublicKey to the AggregatePublicKey.
+    pub fn add_many(&mut self, public_keys: &[&PublicKey]) {
+        for public_key in public_keys {
+            self.point.add(&public_key.point);
+        }
+        self.point.affine();
+    }
+
     /// Add a AggregatePublicKey to the AggregatePublicKey.
     pub fn add_aggregate(&mut self, aggregate_public_key: &AggregatePublicKey) {
         self.point.add(&aggregate_public_key.point);
@@ -648,6 +656,27 @@ mod tests {
         let output = hex::decode(output).unwrap(); // Bytes
 
         assert_eq!(aggregate_pk.as_bytes(), output);
+    }
+
+    #[test]
+    pub fn public_key_aggregate_many() {
+        let keypair_1 = Keypair::random();
+        let keypair_2 = Keypair::random();
+        let keypair_3 = Keypair::random();
+        let keypair_4 = Keypair::random();
+
+        // Should be the same as adding two aggregates
+        let aggregate_public_key1234 = AggregatePublicKey::from_public_keys(&[
+            &keypair_1.pk,
+            &keypair_2.pk,
+            &keypair_3.pk,
+            &keypair_4.pk,
+        ]);
+
+        let mut many_key = AggregatePublicKey::new();
+        many_key.add_many(&[&keypair_1.pk, &keypair_2.pk, &keypair_3.pk, &keypair_4.pk]);
+
+        assert_eq!(many_key, aggregate_public_key1234);
     }
 
     #[test]
