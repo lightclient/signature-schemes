@@ -1,3 +1,12 @@
+# ARCHIVED
+
+**This repository has moved** to https://github.com/sigp/milagro_bls
+
+This repository will not be maintained but the project lives on at the new
+repo.
+
+-----
+
 # BLS12-381 Aggregate Signatures in Rust using Apache Milagro
 
 [![Build Status](https://travis-ci.org/sigp/signature-schemes.svg?branch=master)](https://travis-ci.org/sigp/signature-schemes) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sigp/lighthouse?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
