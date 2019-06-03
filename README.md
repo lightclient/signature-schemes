@@ -1,9 +1,8 @@
-# ARCHIVED
+# ARCHIVED: PROJECT HAS MOVED
 
 **This repository has moved** to https://github.com/sigp/milagro_bls
 
-This repository will not be maintained but the project lives on at the new
-repo.
+This repository will not be maintained, but active development (as of June 2019) continues at the new repository.
 
 -----
 
